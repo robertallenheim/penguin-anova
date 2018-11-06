@@ -1,0 +1,95 @@
+---
+title: "PenguinsvANOVA"
+author: "Robert Heim"
+date: "11/6/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Load packages and read in the penguins.csv data
+
+```{r include=FALSE}
+
+library(tidyverse)
+library(car)
+library(onewaytests)
+
+penguins <- read_csv("penguins.csv")
+
+```
+
+
+Our question:
+
+Is there a significant difference in mean flipper length for female penguins by species (Chinstrap, Gentoo, and Adelie)? 
+
+2. Do some exploring to see if you can use a parametric test. 
+
+New function: with + table for easy counting over multiple factors 
+
+Update the species name using case_when 
+
+```{r}
+
+counts <- with(penguins, table(species, sex))
+
+penguins_2 <- penguins %>%
+  mutate(common_name=
+           case_when(species== "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap", 
+                     species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo",
+                     species ==  "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie")) %>%
+  select(-species) %>%
+  filter(sex== "FEMALE")
+
+penguins_2
+
+
+```
+
+-Exploratory Graphs
+-Summary Statistics
+-Levene's tests for equal variances
+-one-way ANOVA
+-post-hoc testing
+
+```{r}
+
+hists <- ggplot(penguins_2, aes (x= flipper_length)) +
+  geom_histogram(aes(fill= common_name)) + 
+  facet_wrap(~ common_name)
+  
+  hists
+  
+qqs <- ggplot(penguins_2, aes(sample = flipper_length)) +
+  geom_qq() +
+  facet_wrap(~ common_name)
+
+qqs
+
+
+# Levene's test for equal variances(>2 groups... if you have two groups, use the F-test for equal variances)
+
+# We'll use the function leveneTest from the 'car' package
+
+#H0: Variances are equal
+#HA: Variances are unequal
+
+penguin_levene <- leveneTest(flipper_length ~ common_name, data= penguins_2)
+
+penguin_levene
+
+# We retain the null hypothesis of equal variances (p= 0.06)
+
+variances <- penguins_2 %>%
+  group_by(common_name) %>%
+  summarize(variance= var(flipper_length))
+
+variances
+
+
+```
+
+
